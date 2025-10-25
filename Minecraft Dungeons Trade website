@@ -1,1 +1,426 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft Dungeons Trade Hub (CS)</title>
+    <!-- Načtení Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Načtení fontu Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #121212;
+            color: #E0E0E0;
+        }
+        .container-bg {
+            background-color: #212121;
+        }
+        .card-bg {
+            background-color: #333333;
+            border: 2px solid #555555;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        .btn-primary {
+            background-color: #0088AA;
+            color: white;
+            transition: background-color 0.2s;
+        }
+        .btn-primary:hover {
+            background-color: #007799;
+        }
+        .btn-secondary {
+            background-color: #555555;
+            color: white;
+            transition: background-color 0.2s;
+        }
+        .btn-secondary:hover {
+            background-color: #444444;
+        }
+        .rarity-unique { color: #FFAA00; }
+        .rarity-legendary { color: #A050FF; }
+        .rarity-rare { color: #00AAFF; }
+        .rarity-common { color: #FFFFFF; }
+        .input-style {
+            background-color: #444444;
+            border: 1px solid #555555;
+            color: #E0E0E0;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <!-- Kontejner aplikace -->
+    <div id="app" class="max-w-6xl mx-auto container-bg p-4 md:p-8 rounded-xl shadow-2xl">
+
+        <!-- Hlavička -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-teal-400 mb-2">Minecraft Dungeons Trade Hub</h1>
+            <p class="text-xl text-gray-400">Neoficiální platforma pro výměnu a hledání předmětů</p>
+            <div id="auth-status" class="mt-2 text-sm text-gray-500">
+                <span id="user-id">Přihlašování...</span>
+            </div>
+        </header>
+
+        <!-- Sekce pro vytvoření nové nabídky -->
+        <section class="mb-10 card-bg p-6 rounded-lg">
+            <h2 class="text-2xl font-semibold mb-4 text-teal-300 flex items-center">
+                <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Vytvořit Novou Obchodní Nabídku
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Chci předmět (Want) -->
+                <div>
+                    <label for="item-want" class="block text-sm font-medium mb-1">Chci:</label>
+                    <input type="text" id="item-want" placeholder="Název předmětu (např. Zbroj Šampiona)" class="w-full p-2 rounded input-style">
+                </div>
+                <!-- Nabízím předmět (Have) -->
+                <div>
+                    <label for="item-have" class="block text-sm font-medium mb-1">Nabízím:</label>
+                    <input type="text" id="item-have" placeholder="Název předmětu (např. Luk Lovce)" class="w-full p-2 rounded input-style">
+                </div>
+                <!-- Vzácnost (Rarity) -->
+                <div>
+                    <label for="item-rarity" class="block text-sm font-medium mb-1">Vzácnost Nabízeného Předmětu:</label>
+                    <select id="item-rarity" class="w-full p-2 rounded input-style appearance-none">
+                        <option value="common" class="rarity-common">Běžný</option>
+                        <option value="rare" class="rarity-rare">Vzácný</option>
+                        <option value="legendary" class="rarity-legendary">Legendární</option>
+                        <option value="unique" class="rarity-unique">Unikátní</option>
+                    </select>
+                </div>
+                <!-- Platforma (Platform) -->
+                <div>
+                    <label for="item-platform" class="block text-sm font-medium mb-1">Platforma:</label>
+                    <select id="item-platform" class="w-full p-2 rounded input-style appearance-none">
+                        <option value="any">Jakákoli</option>
+                        <option value="pc">PC</option>
+                        <option value="xbox">Xbox</option>
+                        <option value="ps">PlayStation</option>
+                        <option value="switch">Switch</option>
+                    </select>
+                </div>
+            </div>
+            <button id="submit-trade" class="mt-6 w-full btn-primary font-bold py-3 px-4 rounded-lg flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                Zveřejnit Nabídku
+            </button>
+            <p id="error-message" class="text-red-500 mt-2 hidden text-center"></p>
+        </section>
+
+        <!-- Sekce seznamu obchodů -->
+        <section>
+            <h2 class="text-2xl font-semibold mb-4 text-teal-300 flex items-center">
+                <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                Aktivní Obchodní Nabídky
+            </h2>
+            <div id="trades-list" class="space-y-4">
+                <!-- Obchodní nabídky se načtou zde -->
+                <p id="loading-indicator" class="text-center p-4 text-gray-400">Načítání nabídek...</p>
+            </div>
+        </section>
+
+        <!-- Modální okno pro potvrzení smazání (Custom Modal) -->
+        <div id="delete-modal" class="fixed inset-0 bg-black bg-opacity-70 hidden items-center justify-center p-4 z-50">
+            <div class="card-bg p-6 rounded-xl w-full max-w-sm">
+                <h3 class="text-xl font-bold mb-4 text-teal-300">Potvrďte Smazání</h3>
+                <p class="mb-6">Opravdu chcete tuto obchodní nabídku smazat?</p>
+                <div class="flex justify-end space-x-4">
+                    <button id="cancel-delete" class="btn-secondary py-2 px-4 rounded-lg">Zrušit</button>
+                    <button id="confirm-delete" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">Smazat</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase Imports -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, addDoc, deleteDoc, onSnapshot, collection, query, serverTimestamp, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // Zde se získávají globální proměnné z Canvasu
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // Inicializace Firebase
+        let app, db, auth;
+        let userId = null;
+        let isAuthReady = false;
+        
+        try {
+            if (Object.keys(firebaseConfig).length > 0) {
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                setLogLevel('debug'); // Zapnutí logování pro ladění
+
+                // Autentizace
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        userId = user.uid;
+                    } else {
+                        // Přihlášení anonymně, pokud není token
+                        if (initialAuthToken) {
+                            try {
+                                await signInWithCustomToken(auth, initialAuthToken);
+                                userId = auth.currentUser?.uid || crypto.randomUUID();
+                            } catch (error) {
+                                console.error("Chyba při přihlašování pomocí tokenu:", error);
+                                await signInAnonymously(auth);
+                                userId = auth.currentUser?.uid || crypto.randomUUID();
+                            }
+                        } else {
+                            await signInAnonymously(auth);
+                            userId = auth.currentUser?.uid || crypto.randomUUID();
+                        }
+                    }
+                    isAuthReady = true;
+                    document.getElementById('user-id').textContent = `Uživatel ID: ${userId}`;
+                    listenForTrades();
+                });
+            } else {
+                console.error("Konfigurace Firebase není k dispozici. Aplikace nebude funkční.");
+                document.getElementById('loading-indicator').textContent = 'Chyba: Konfigurace Firebase nebyla nalezena.';
+            }
+        } catch (error) {
+            console.error("Chyba při inicializaci Firebase:", error);
+            document.getElementById('loading-indicator').textContent = 'Chyba: Inicializace Firebase selhala.';
+        }
+
+        // --- Konfigurace Firestore Cest ---
+        // Veřejná kolekce pro sdílení obchodních nabídek
+        const getTradeCollectionRef = () => {
+            if (!db) return null;
+            return collection(db, `artifacts/${appId}/public/data/trades`);
+        };
+
+        // --- Funkce pro zobrazení zpráv/chyb ---
+        const displayMessage = (msg, isError = false) => {
+            const errorElement = document.getElementById('error-message');
+            errorElement.textContent = msg;
+            errorElement.className = `mt-2 text-center p-2 rounded ${isError ? 'bg-red-900 text-red-300' : 'bg-green-900 text-green-300'} block`;
+            setTimeout(() => {
+                errorElement.classList.add('hidden');
+            }, 5000);
+        };
+
+        // --- Funkce pro přidání nové nabídky ---
+        document.getElementById('submit-trade').addEventListener('click', async () => {
+            if (!db || !userId) {
+                displayMessage("Prosím, počkejte na přihlášení a inicializaci Firebase.", true);
+                return;
+            }
+
+            const itemWant = document.getElementById('item-want').value.trim();
+            const itemHave = document.getElementById('item-have').value.trim();
+            const rarity = document.getElementById('item-rarity').value;
+            const platform = document.getElementById('item-platform').value;
+
+            if (!itemWant || !itemHave) {
+                displayMessage("Pole 'Chci' a 'Nabízím' musí být vyplněna.", true);
+                return;
+            }
+
+            const tradeData = {
+                wantedItem: itemWant,
+                offeredItem: itemHave,
+                rarity: rarity,
+                platform: platform,
+                ownerId: userId,
+                timestamp: serverTimestamp()
+            };
+
+            try {
+                const tradeCollection = getTradeCollectionRef();
+                if (tradeCollection) {
+                    await addDoc(tradeCollection, tradeData);
+                    // Vyčištění formuláře
+                    document.getElementById('item-want').value = '';
+                    document.getElementById('item-have').value = '';
+                    document.getElementById('item-rarity').value = 'common';
+                    document.getElementById('item-platform').value = 'any';
+                    displayMessage("Obchodní nabídka byla úspěšně zveřejněna.", false);
+                }
+            } catch (error) {
+                console.error("Chyba při zveřejňování nabídky: ", error);
+                displayMessage("Chyba při ukládání nabídky do databáze.", true);
+            }
+        });
+
+        // --- Funkce pro smazání nabídky ---
+        let tradeToDeleteId = null;
+
+        const setupDeleteModal = () => {
+            const modal = document.getElementById('delete-modal');
+            const confirmBtn = document.getElementById('confirm-delete');
+            const cancelBtn = document.getElementById('cancel-delete');
+
+            cancelBtn.addEventListener('click', () => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                tradeToDeleteId = null;
+            });
+
+            confirmBtn.addEventListener('click', async () => {
+                if (tradeToDeleteId && db) {
+                    try {
+                        const tradeRef = doc(db, `artifacts/${appId}/public/data/trades/${tradeToDeleteId}`);
+                        await deleteDoc(tradeRef);
+                        displayMessage("Nabídka byla smazána.", false);
+                    } catch (error) {
+                        console.error("Chyba při mazání nabídky: ", error);
+                        displayMessage("Chyba při mazání nabídky z databáze.", true);
+                    }
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                    tradeToDeleteId = null;
+                }
+            });
+        };
+
+        const showDeleteModal = (tradeId) => {
+            tradeToDeleteId = tradeId;
+            const modal = document.getElementById('delete-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        };
+        
+        setupDeleteModal();
+
+        // --- Funkce pro naslouchání změnám v databázi (Real-time) ---
+        const listenForTrades = () => {
+            const tradeCollection = getTradeCollectionRef();
+            if (!tradeCollection) return;
+
+            // Dotaz: seřazeno podle času vytvoření, pouze 50 nejnovějších
+            const q = query(tradeCollection, orderBy('timestamp', 'desc'), limit(50));
+
+            onSnapshot(q, (snapshot) => {
+                const tradesListElement = document.getElementById('trades-list');
+                const loadingIndicator = document.getElementById('loading-indicator');
+                
+                // Skrytí indikátoru načítání
+                if (loadingIndicator) loadingIndicator.classList.add('hidden');
+
+                if (snapshot.empty) {
+                    tradesListElement.innerHTML = '<p class="text-center p-4 text-gray-400">Momentálně nejsou k dispozici žádné aktivní obchodní nabídky. Zveřejněte první!</p>';
+                    return;
+                }
+
+                let htmlContent = '';
+                snapshot.docs.forEach(doc => {
+                    const trade = doc.data();
+                    const tradeId = doc.id;
+                    const isOwner = trade.ownerId === userId;
+                    
+                    const timeString = trade.timestamp?.toDate ? 
+                        trade.timestamp.toDate().toLocaleString('cs-CZ', { timeStyle: 'short', dateStyle: 'short' }) : 
+                        'Není známo';
+
+                    const platformIcon = getPlatformIcon(trade.platform);
+                    const rarityClass = `rarity-${trade.rarity}`;
+                    
+                    htmlContent += `
+                        <div class="card-bg p-4 rounded-lg flex flex-col md:flex-row justify-between items-start md:items-center">
+                            <!-- Popis Obchodu -->
+                            <div class="mb-3 md:mb-0 md:w-3/5">
+                                <p class="text-xs text-gray-400 mb-1">CHCI: <span class="font-bold text-lg text-white">${trade.wantedItem}</span></p>
+                                <p class="text-xs text-gray-400">NABÍZÍM: <span class="font-bold text-lg ${rarityClass}">${trade.offeredItem}</span></p>
+                            </div>
+
+                            <!-- Metadata a Akce -->
+                            <div class="md:w-2/5 flex flex-col md:flex-row items-start md:items-center justify-end space-y-2 md:space-y-0 md:space-x-4 w-full">
+                                <div class="flex items-center text-sm text-gray-400">
+                                    <span class="mr-2">${platformIcon}</span>
+                                    <span>${getPlatformName(trade.platform)}</span>
+                                </div>
+                                <div class="text-sm text-gray-500 whitespace-nowrap">
+                                    ${timeString}
+                                </div>
+                                ${isOwner ? `
+                                    <button data-id="${tradeId}" class="delete-btn bg-red-600 hover:bg-red-700 text-white text-sm font-bold py-2 px-3 rounded-lg flex items-center">
+                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                        Smazat
+                                    </button>
+                                ` : `
+                                    <button class="contact-btn btn-primary text-sm font-bold py-2 px-3 rounded-lg flex items-center" 
+                                            onclick="copyToClipboard('${trade.ownerId}')">
+                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 4v-4z"></path></svg>
+                                        Kontaktovat
+                                    </button>
+                                `}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                tradesListElement.innerHTML = htmlContent;
+
+                // Připojení event listenerů ke smazání
+                document.querySelectorAll('.delete-btn').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const id = e.currentTarget.getAttribute('data-id');
+                        showDeleteModal(id);
+                    });
+                });
+
+            }, (error) => {
+                console.error("Chyba při načítání nabídek v reálném čase: ", error);
+                document.getElementById('loading-indicator').textContent = 'Chyba při načítání dat.';
+                document.getElementById('loading-indicator').classList.remove('hidden');
+            });
+        };
+
+        // --- Pomocné funkce pro UI ---
+        
+        function getPlatformIcon(platform) {
+            switch (platform) {
+                case 'pc': return '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9.25 10m-2 7H5.25A1.75 1.75 0 013.5 15.25V5.75A1.75 1.75 0 015.25 4h13.5A1.75 1.75 0 0120.5 5.75v9.5A1.75 1.75 0 0118.75 17H14.25"></path></svg>';
+                case 'xbox': return '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18V6M4 12h16m-4 0a4 4 0 00-8 0m0 0H8m4 0h4m-4 0H8M12 4a8 8 0 100 16 8 8 0 000-16z"></path></svg>';
+                case 'ps': return '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m0-4v2m0-4v2m0-4V7M9 15h6M9 9h6M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>';
+                case 'switch': return '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12v.01M20 12v.01M10 12h4M6 5h12a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2z"></path></svg>';
+                default: return '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>';
+            }
+        }
+
+        function getPlatformName(platform) {
+            switch (platform) {
+                case 'pc': return 'PC';
+                case 'xbox': return 'Xbox';
+                case 'ps': return 'PlayStation';
+                case 'switch': return 'Switch';
+                default: return 'Cross-play';
+            }
+        }
+
+        // Funkce pro kopírování ID uživatele do schránky
+        window.copyToClipboard = (text) => {
+            // Používáme document.execCommand('copy'), protože navigator.clipboard nemusí fungovat v iFrame
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    displayMessage(`ID uživatele ( ${text} ) zkopírováno! Nyní ho můžete poslat přes Discord/Chat.`, false);
+                } else {
+                    displayMessage('Chyba při kopírování ID do schránky.', true);
+                }
+            } catch (err) {
+                console.error('Chyba kopírování: ', err);
+                displayMessage('Chyba při kopírování ID do schránky.', true);
+            }
+            
+            document.body.removeChild(textarea);
+        };
+        
+    </script>
+</body>
+</html>
 
